@@ -1,0 +1,112 @@
+---
+title: "code"
+author: "Houda EL AJI & Dima ASSI"
+date: "12/02/2021"
+output: html_document
+---
+```{r}
+set.seed(1245)
+
+```
+On importe les données de fertility en csv depuis le fichier texte en labelisant les colonnes et ensuite nous écrivant les données sur un fichier csv :
+```{r}
+##import the fertility data
+fertilityData<-read.csv("fertility_Diagnosis.txt",header = FALSE)
+##label the column names
+names(fertilityData)<-c("Season","Age","ChildDisease","Trauma","SurgicalInterven"
+                        ,"HighFeverLastYear","FrequencyAlcohol","Smoking"
+                        ,"SittingHour","Diagnosis")
+write.csv(fertilityData, file = "fertility_Diagnosis.csv");
+set.seed(1245)
+
+```
+
+#Analyse descriptive
+```{r}
+fertilityData[1:10]
+summary(fertilityData)
+
+```
+
+## BoxPlots
+Nous réalisons des boxplots pour chaque attribut en fonction de l'attribut Output diagnosis, afin de comprendre l'impact de chaque facteurs sur le diagnostic de la fertilité.
+
+```{r}
+##boxplots
+ 
+par(mfrow=c(1,5))
+boxplot(split(fertilityData$Season,fertilityData$Diagnosis), main="Season")
+boxplot(split(fertilityData$Age,fertilityData$Diagnosis), main="Age")
+boxplot(split(fertilityData$ChildDisease,fertilityData$Diagnosis), main="Childish Disease")
+boxplot(split(fertilityData$Trauma,fertilityData$Diagnosis), main="Trauma")
+boxplot(split(fertilityData$SurgicalInterven,fertilityData$Diagnosis), main="Surgical Intervention")
+boxplot(split(fertilityData$HighFeverLastYear,fertilityData$Diagnosis), main="High Fever Last Year")
+boxplot(split(fertilityData$FrequencyAlcohol,fertilityData$Diagnosis), main="Frequency Alcohol")
+boxplot(split(fertilityData$Smoking,fertilityData$Diagnosis), main="Smoking")
+boxplot(split(fertilityData$SittingHour,fertilityData$Diagnosis), main="Sitting Hour")
+
+```
+
+```{r}
+library(ggplot2)
+library(ggExtra)
+ggplot(fertilityData,aes(x=HighFeverLastYear,y=Age))+geom_col()+
+  facet_grid(~Diagnosis)+labs(subtitle = "Dignosis avec Age en fonction de HighFeverLastYear")
+
+```
+On observe que les hommes qui ont eu des valeurs hautes de la fièvre la dernière année plus que 3 mois, et qui ont entre 27-30 ans ont un diagnostique anormal.
+```{r}
+#Densityplot
+ggplot(fertilityData,aes(x=FrequencyAlcohol,fill=as.factor(Season)))+
+  geom_density(alpha=0.5)+labs(subtitle = "La fréquence de consommation de l'alcohol en fonction des saisons")
+```
+La consommation moyenne d'alcool se produit dans la mesure où la saison de printemps et d'hiver
+```{r}
+##Matrice de nuage de point
+plot(fertilityData)
+```
+
+#Classification Non-Supérvisée
+```{r}
+```
+##Partitionnement CAH & K-means
+```{r}
+set.seed(1)
+
+A<-read.table("fertility_Diagnosis.txt")
+A<-as.data.frame(matrix(rnorm(1000), ncol=5))
+
+#classification ascendante hiérarchique
+A.cah <- hclust(dist(A), method="ward.D")
+names(A.cah)
+barplot(A.cah$height)
+cah.class <- cutree(A.cah,k=5)
+table(cah.class)
+plot(A.cah)
+
+#calcule de la matrice de centre
+
+center.ini <- apply(A,2,function(x) tapply(x,cah.class,mean))
+center.ini
+
+#kmeans
+A.kmeans <- kmeans(A,center.ini)
+names(A.kmeans)
+
+table(cah.class, A.kmeans$cluster)
+
+
+```
+
+
+##Classification Supervisée
+```{r}
+
+ library(rpart)
+
+fit<-rpart(fertilityData_Train$Diagnosis~+fertilityData_Train$Smoking+fertilityData_Train$FrequencyAlcohol+fertilityData_Train$SittingHour+fertilityData_Train$ChildDisease+fertilityData_Train$Trauma+fertilityData_Train$SurgicalInterven,
+           data=fertilityData_Test,
+          method="class",
+            minsplit=2, minbucket=1)
+
+```
