@@ -23,7 +23,7 @@ set.seed(1245)
 
 #Analyse descriptive
 ```{r}
-fertilityData[1:10]
+#fertilityData[1:10]
 summary(fertilityData)
 
 ```
@@ -64,6 +64,7 @@ La consommation moyenne d'alcool se produit dans la mesure où la saison de prin
 ```{r}
 ##Matrice de nuage de point
 plot(fertilityData)
+plot(fertilityData$Age,fertilityData$SittingHour)
 ```
 
 #Classification Non-Supérvisée
@@ -98,6 +99,26 @@ table(cah.class, A.kmeans$cluster)
 
 ```
 
+```{r}
+
+library(rpart)
+
+library(rpart.plot)
+library(RColorBrewer)
+arbre1<-rpart(fertilityData$Diagnosis~ fertilityData$Age+ fertilityData$SurgicalInterven+fertilityData$Trauma,data=fertilityData,minsplit=2,minbucket=1)
+print(arbre1)
+rpart.plot(arbre1)
+arbre2<-rpart(fertilityData$Diagnosis~.,data=fertilityData, minsplit=2,minbucket=1)
+print(arbre2)
+rpart.plot(arbre2)
+
+
+
+
+
+
+
+```
 
 ##Classification Supervisée
 ```{r}
