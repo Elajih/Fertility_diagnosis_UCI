@@ -4,10 +4,7 @@ author: "Houda EL AJI & Dima ASSI"
 date: "12/02/2021"
 output: html_document
 ---
-```{r}
-set.seed(1245)
 
-```
 On importe les données de fertility en csv depuis le fichier texte en labelisant les colonnes et ensuite nous écrivant les données sur un fichier csv :
 ```{r}
 ##import the fertility data
@@ -23,7 +20,7 @@ set.seed(1245)
 
 #Analyse descriptive
 ```{r}
-#fertilityData[1:10]
+fertilityData[1:10]
 summary(fertilityData)
 
 ```
@@ -61,44 +58,113 @@ ggplot(fertilityData,aes(x=FrequencyAlcohol,fill=as.factor(Season)))+
   geom_density(alpha=0.5)+labs(subtitle = "La fréquence de consommation de l'alcohol en fonction des saisons")
 ```
 La consommation moyenne d'alcool se produit dans la mesure où la saison de printemps et d'hiver
+
 ```{r}
 ##Matrice de nuage de point
 plot(fertilityData)
 plot(fertilityData$Age,fertilityData$SittingHour)
+
+```
+```{r}
+library(ggplot2)
+library(ggExtra)
+#Scatterplot
+ggplot(fertilityData,aes(x=Age,y=SittingHour,color=Diagnosis))+geom_point()+
+  labs(subtitle = "Dignosis with age vs hours spent",caption="OBSERVATION:It is 
+  observed that the people with age 28-32  spend less amount of time and are normal")
+```
+```{r}
+#Frequency plot
+ggplot(data = fertilityData, mapping = aes(x =Age , colour = Diagnosis )) +
+  geom_freqpoly(binwidth = 0.1)
 ```
 
 #Classification Non-Supérvisée
+Afin de pouvoir calculer la matrice de dissimilarité pour le cas de nos variables qualitatif binaire nous utilisant la metrique Gower
 ```{r}
+set.seed(1680) # for reproducibility
+
+library(ISLR) # for college dataset
+library(cluster) # for gower similarity and pam
+library(Rtsne) # for t-SNE plot
+library(ggplot2) # for visualization
+library(dplyr)
+
+dataP<-fertilityData[1:9]
+
+gower_dist <- daisy(dataP,
+                    metric = "gower",
+                    type = list(asymm = c(3:5), ordratio =c(1,6:8)))
+summary(gower_dist)
+
+#In order to check that the matrix of dissimilarities is well calculated
+
+# Output most similar pair
+gower_mat <- as.matrix(gower_dist)
+dataP[
+  which(gower_mat == min(gower_mat[gower_mat != min(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
+
+# Output most dissimilar pair
+dataP[
+  which(gower_mat == max(gower_mat[gower_mat != max(gower_mat)]),
+        arr.ind = TRUE)[1, ], ]
 ```
-##Partitionnement CAH & K-means
+##Partitionnement PAM
+
 ```{r}
-set.seed(1)
 
-A<-read.table("fertility_Diagnosis.txt")
-A<-as.data.frame(matrix(rnorm(1000), ncol=5))
+#Search how many medoids we need to get a better pationning
+sil_width <- c(NA)
 
-#classification ascendante hiérarchique
-A.cah <- hclust(dist(A), method="ward.D")
-names(A.cah)
-barplot(A.cah$height)
-cah.class <- cutree(A.cah,k=5)
-table(cah.class)
-plot(A.cah)
+for(i in 2:10){
+  
+  pam_fit <- pam(gower_dist,
+                 diss = TRUE,
+                 k = i)
+  
+  sil_width[i] <- pam_fit$silinfo$avg.width
+  
+}
 
-#calcule de la matrice de centre
+# Plot sihouette width (higher is better)
 
-center.ini <- apply(A,2,function(x) tapply(x,cah.class,mean))
-center.ini
+plot(1:10, sil_width,
+     xlab = "Number of clusters",
+     ylab = "Silhouette Width")
+lines(1:10, sil_width)
+```
+```{r}
 
-#kmeans
-A.kmeans <- kmeans(A,center.ini)
-names(A.kmeans)
+#Pam Algorithm
+pam_fit <- pam(gower_dist, diss = TRUE, k = 6)
 
-table(cah.class, A.kmeans$cluster)
+#Analyze Pam result
+pam_results <- dataP %>%
+  dplyr::select(1:9) %>%
+  mutate(cluster = pam_fit$clustering) %>%
+  group_by(cluster) %>%
+  do(the_summary = summary(.))
 
+pam_results$the_summary
 
+##Visualization PAM
+
+tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
+
+tsne_data <- tsne_obj$Y %>%
+  data.frame() %>%
+  setNames(c("X", "Y")) %>%
+  mutate(cluster = factor(pam_fit$clustering))
+
+ggplot(aes(x = X, y = Y), data = tsne_data) +
+  geom_point(aes(color = cluster))
 ```
 
+
+
+
+##Classification Supervisée
 ```{r}
 
 library(rpart)
@@ -111,23 +177,4 @@ rpart.plot(arbre1)
 arbre2<-rpart(fertilityData$Diagnosis~.,data=fertilityData, minsplit=2,minbucket=1)
 print(arbre2)
 rpart.plot(arbre2)
-
-
-
-
-
-
-
-```
-
-##Classification Supervisée
-```{r}
-
- library(rpart)
-
-fit<-rpart(fertilityData_Train$Diagnosis~+fertilityData_Train$Smoking+fertilityData_Train$FrequencyAlcohol+fertilityData_Train$SittingHour+fertilityData_Train$ChildDisease+fertilityData_Train$Trauma+fertilityData_Train$SurgicalInterven,
-           data=fertilityData_Test,
-          method="class",
-            minsplit=2, minbucket=1)
-
 ```
