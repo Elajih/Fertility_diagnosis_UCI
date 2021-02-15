@@ -113,6 +113,7 @@ dataP[
 ##Partitionnement PAM
 
 ```{r}
+set.seed(1680) # for reproducibility
 
 #Search how many medoids we need to get a better pationning
 sil_width <- c(NA)
@@ -135,6 +136,7 @@ plot(1:10, sil_width,
 lines(1:10, sil_width)
 ```
 ```{r}
+set.seed(1680) # for reproducibility
 
 #Pam Algorithm
 pam_fit <- pam(gower_dist, diss = TRUE, k = 6)
@@ -159,6 +161,24 @@ tsne_data <- tsne_obj$Y %>%
 
 ggplot(aes(x = X, y = Y), data = tsne_data) +
   geom_point(aes(color = cluster))
+
+```
+
+
+```{r}
+set.seed(1680) # for reproducibility
+
+library(kmed)
+library(cluster)
+dataP.dis<-distmix(dataP, method = "gower", idnum = c(2,9), idbin = c(3:5), idcat = c(1,6:8))
+dataP.dis<- matrix(nrow=100,ncol=100,data=rnorm(100*100,0,1))
+dis=as.dist(dataP.dis)
+dataP.cah<-hclust(dis)
+print(dataP.cah)
+plot(dataP.cah)
+rect.hclust(dataP.cah, k=6)
+
+
 ```
 
 
@@ -166,6 +186,7 @@ ggplot(aes(x = X, y = Y), data = tsne_data) +
 
 ##Classification Supervisée
 ```{r}
+set.seed(1680) # for reproducibility
 
 library(rpart)
 
