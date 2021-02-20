@@ -11,11 +11,9 @@ This dataset was found under the name [Fertility Data Set](https://archive.ics.u
 * 10 attributes
 * Missing values : NO
 
-Data is located in directory called `data`
+Data is located in directory called `Source`
 
-`data/fertility_dignosis.csv`
-
-Attributes are the same as they were in input data.
+`Source/fertility_Dignosis.csv` or `Source/fertility_Dignosis.txt`
 
 ## Preparation
 
@@ -27,3 +25,5 @@ R scripts are located in directory `Source`
 The report is located on main repository 
 
 `Projet_SD_ASSI_EL_AJI_CR.pdf`
+
+All generated figures and trees are in directory `Fig` 
