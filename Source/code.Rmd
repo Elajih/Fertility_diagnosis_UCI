@@ -22,9 +22,18 @@ set.seed(1245)
 ```{r}
 fertilityData[1:10]
 summary(fertilityData)
+str(fertilityData)
 
 ```
+```{r}
+library(ggplot2)
+library(ggExtra)
+library(dplyr)
+hist(fertilityData$Age,main= "Distribution des âges selon les individus" , xlab = "Age", ylab = "Individus", col = "Gold")
+hist(fertilityData$FrequencyAlcohol, main= "Distribution des fréquences de consommation d'alcool selon les individus" , xlab = "Fréquence Alcool", ylab = "Individus",col = "Blue")
+hist(fertilityData$SittingHour,main= "Distribution du nombre d'heures passées assis par jour selon les individus" , xlab = "Nombre d'heures",ylab = "Individus", col = "Tomato")
 
+```
 ## BoxPlots
 Nous réalisons des boxplots pour chaque attribut en fonction de l'attribut Output diagnosis, afin de comprendre l'impact de chaque facteurs sur le diagnostic de la fertilité.
 
@@ -44,13 +53,7 @@ boxplot(split(fertilityData$SittingHour,fertilityData$Diagnosis), main="Sitting 
 
 ```
 
-```{r}
-library(ggplot2)
-library(ggExtra)
-ggplot(fertilityData,aes(x=HighFeverLastYear,y=Age))+geom_col()+
-  facet_grid(~Diagnosis)+labs(subtitle = "Dignosis avec Age en fonction de HighFeverLastYear")
 
-```
 On observe que les hommes qui ont eu des valeurs hautes de la fièvre la dernière année plus que 3 mois, et qui ont entre 27-30 ans ont un diagnostique anormal.
 ```{r}
 #Densityplot
@@ -62,17 +65,9 @@ La consommation moyenne d'alcool se produit dans la mesure où la saison de prin
 ```{r}
 ##Matrice de nuage de point
 plot(fertilityData)
-plot(fertilityData$Age,fertilityData$SittingHour)
 
 ```
-```{r}
-library(ggplot2)
-library(ggExtra)
-#Scatterplot
-ggplot(fertilityData,aes(x=Age,y=SittingHour,color=Diagnosis))+geom_point()+
-  labs(subtitle = "Dignosis with age vs hours spent",caption="OBSERVATION:It is 
-  observed that the people with age 28-32  spend less amount of time and are normal")
-```
+
 ```{r}
 #Frequency plot
 ggplot(data = fertilityData, mapping = aes(x =Age , colour = Diagnosis )) +
@@ -82,23 +77,16 @@ ggplot(data = fertilityData, mapping = aes(x =Age , colour = Diagnosis )) +
 #Classification Non-Supérvisée
 Afin de pouvoir calculer la matrice de dissimilarité pour le cas de nos variables qualitatif binaire nous utilisant la metrique Gower
 ```{r}
-set.seed(1680) # for reproducibility
-
-library(ISLR) # for college dataset
-library(cluster) # for gower similarity and pam
-library(Rtsne) # for t-SNE plot
-library(ggplot2) # for visualization
-library(dplyr)
+library(cluster)
 
 dataP<-fertilityData[1:9]
 
 gower_dist <- daisy(dataP,
                     metric = "gower",
-                    type = list(asymm = c(3:5), ordratio =c(1,6:8)))
+                    type = list(asymm = c(3:5), ordratio =c(1,6,8)))
 summary(gower_dist)
 
 #In order to check that the matrix of dissimilarities is well calculated
-
 # Output most similar pair
 gower_mat <- as.matrix(gower_dist)
 dataP[
@@ -131,15 +119,23 @@ for(i in 2:10){
 # Plot sihouette width (higher is better)
 
 plot(1:10, sil_width,
-     xlab = "Number of clusters",
-     ylab = "Silhouette Width")
+     xlab = "Nombre de cluster",
+     ylab = "Largeur de silhoutte")
 lines(1:10, sil_width)
 ```
 ```{r}
 set.seed(1680) # for reproducibility
+library(ggfortify) 
+library(stats)
+library(ISLR) # for college dataset
+library(cluster) # for gower similarity and pam
+library(Rtsne) # for t-SNE plot
+library(ggplot2) # for visualization
+library(dplyr)
+library(factoextra) # for visualization
 
 #Pam Algorithm
-pam_fit <- pam(gower_dist, diss = TRUE, k = 6)
+pam_fit <- pam(as.matrix(gower_dist), diss = TRUE, k = 6)
 
 #Analyze Pam result
 pam_results <- dataP %>%
@@ -150,8 +146,12 @@ pam_results <- dataP %>%
 
 pam_results$the_summary
 
-##Visualization PAM
 
+##Visualize silhoutte
+sil = silhouette (pam_fit$clustering, gower_dist)
+plot(sil)
+
+##Visualization PAM
 tsne_obj <- Rtsne(gower_dist, is_distance = TRUE)
 
 tsne_data <- tsne_obj$Y %>%
@@ -160,7 +160,9 @@ tsne_data <- tsne_obj$Y %>%
   mutate(cluster = factor(pam_fit$clustering))
 
 ggplot(aes(x = X, y = Y), data = tsne_data) +
-  geom_point(aes(color = cluster))
+  geom_point(aes(color = cluster))+labs(title = "PAM clustering")
+
+  
 
 ```
 
@@ -168,17 +170,12 @@ ggplot(aes(x = X, y = Y), data = tsne_data) +
 ```{r}
 set.seed(1680) # for reproducibility
 
-library(kmed)
 library(cluster)
-dataP.dis<-distmix(dataP, method = "gower", idnum = c(2,9), idbin = c(3:5), idcat = c(1,6:8))
-dataP.dis<- matrix(nrow=100,ncol=100,data=rnorm(100*100,0,1))
-dis=as.dist(dataP.dis)
-dataP.cah<-hclust(dis)
-print(dataP.cah)
-plot(dataP.cah)
-rect.hclust(dataP.cah, k=6)
+library(factoextra)
 
-
+hc.cut <- hcut(gower_dist, isdiss = TRUE, k = 6, hc_method = "complete")
+# Visualize dendrogram
+fviz_dend(hc.cut, show_labels = TRUE, rect = TRUE)
 ```
 
 
@@ -199,3 +196,47 @@ arbre2<-rpart(fertilityData$Diagnosis~.,data=fertilityData, minsplit=2,minbucket
 print(arbre2)
 rpart.plot(arbre2)
 ```
+
+```{r}
+set.seed(1680)
+#Test validation croisée
+
+
+# Modeling packages
+library(caret)
+library(rpart)       # for fitting decision trees
+library(rpart.plot)
+library(RColorBrewer)
+
+#compute global error rate of our first tree and second
+pred = predict(arbre1, fertilityData, type = "class")
+mc =table(fertilityData$Diagnosis, pred)
+print(mc)
+t=(mc[1, 2]+mc[2,1])/sum(mc)
+print(t)
+
+pred2 = predict(arbre2, fertilityData, type = "class")
+mc2 =table(fertilityData$Diagnosis, pred2)
+print(mc2)
+t2=(mc[1, 2]+mc[2,1])/sum(mc2)
+print(t)
+
+
+#Partition test and training
+n = nrow(fertilityData)
+m = 70
+s = sample(1:n, m)
+fertilityData_Train = fertilityData[s, ]
+fertilityData_Test= fertilityData[-s, ]
+
+#Compute error rate for new tree
+newTree=rpart(fertilityData_Train$Diagnosis~.,data=fertilityData_Train,minsplit=2,minbucket=1)
+rpart.plot(newTree)
+c=predict(newTree, fertilityData_Test[1:9], type = "class")
+sum (c!= fertilityData_Test$Diagnosis) /nrow(fertilityData_Test)
+plotcp(newTree)
+```
+
+
+
+
